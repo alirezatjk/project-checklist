@@ -29,6 +29,7 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("does this work?")
 		}
 	}
+	fmt.Println(payload)
 	switch payload.(type) {
 	case github.PullRequestPayload:
 		pullRequest := payload.(github.PullRequestPayload)
