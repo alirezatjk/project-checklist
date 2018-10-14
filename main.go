@@ -4,11 +4,15 @@ import (
 	"fmt"
 	"gopkg.in/go-playground/webhooks.v5/github"
 	"net/http"
+	"os"
 )
 
 const (
 	path = "/hooks"
-	hookSecret = "1qaz2wsx#EDC$RFV"
+)
+
+var (
+	hookSecret = os.Getenv("HOOK_SECRET")
 )
 
 func main() {
