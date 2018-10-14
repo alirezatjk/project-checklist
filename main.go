@@ -34,7 +34,6 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 		pullRequest := payload.(github.PullRequestPayload)
 		// Do whatever you want from here...
 		fmt.Printf("%+v", pullRequest)
-		
 	case github.PushPayload:
 		push := payload.(github.PushPayload)
 		fmt.Printf("%+v", push)
