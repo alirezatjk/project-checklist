@@ -22,6 +22,7 @@ func main() {
 }
 
 func webhookHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("hook secret:", hookSecret)
 	hook, _ := github.New(github.Options.Secret(hookSecret))
 	payload, err := hook.Parse(r, github.PullRequestEvent, github.PushEvent)
 	if err != nil {
