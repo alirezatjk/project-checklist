@@ -27,13 +27,15 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if err == github.ErrEventNotFound {
 			fmt.Println("does this work?")
+		} else {
+			fmt.Println(err)
 		}
 	}
 	fmt.Println(payload)
 	switch payload.(type) {
 	case github.PullRequestPayload:
 		pullRequest := payload.(github.PullRequestPayload)
-		//Do whatever you want from here...  
+		//Do whatever you want from here...
 		fmt.Printf("%+v", pullRequest)
 	case github.PushPayload:
 		push := payload.(github.PushPayload)
