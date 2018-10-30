@@ -88,7 +88,9 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			logError(err)
 		}
-		req, err := http.NewRequest("POST", "https://github.com/repos/alirezatjk/trumpet_checks/check-runs",
+		req, err := http.NewRequest(
+			"POST",
+			"https://api.github.com/repos/alirezatjk/trumpet_checks/check-runs",
 			bytes.NewBuffer(inProgressPayload))
 		if err != nil {
 			logError(err)
@@ -112,7 +114,7 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//mooooooooooooo
+//moooooooooo
 func createCheckRun(head string) CreateCheckRunPayload {
 	checkRun := CreateCheckRunPayload{
 		Name:        "First check run test",
