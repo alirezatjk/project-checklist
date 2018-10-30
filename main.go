@@ -82,7 +82,7 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 	switch payload.(type) {
 	case github.PullRequestPayload:
 		pullRequest := payload.(github.PullRequestPayload)
-		fmt.Printf("%+v", pullRequest)
+		//fmt.Printf("%+v", pullRequest)
 		checkRun := createCheckRun(pullRequest.PullRequest.Head.Sha)
 		inProgressPayload, err := json.Marshal(checkRun)
 		if err != nil {
@@ -107,8 +107,8 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Println("Response: ", string(body))
 	case github.PushPayload:
-		push := payload.(github.PushPayload)
-		fmt.Printf("%+v", push)
+		_ := payload.(github.PushPayload)
+		//fmt.Printf("%+v", push)
 	}
 }
 
