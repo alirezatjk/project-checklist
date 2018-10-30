@@ -107,8 +107,8 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Println("Response: ", string(body))
 	case github.PushPayload:
-		_ := payload.(github.PushPayload)
-		//fmt.Printf("%+v", push)
+		moo := ""
+		fmt.Printf("%+v", moo)
 	}
 }
 
