@@ -31,11 +31,11 @@ type Actions struct {
 }
 
 type Output struct {
-	Title       string      `json:"title"`
-	Summary     string      `json:"summary"`
-	Text        string      `json:"text"`
-	Annotations Annotations `json:"annotations"`
-	Images      Images      `json:"images"`
+	Title       string        `json:"title"`
+	Summary     string        `json:"summary"`
+	Text        string        `json:"text"`
+	Annotations []Annotations `json:"annotations"`
+	Images      []Images      `json:"images"`
 }
 
 type Images struct {
@@ -83,14 +83,14 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 	case github.PullRequestPayload:
 		pullRequest := payload.(github.PullRequestPayload)
 		//fmt.Printf("%+v", pullRequest)
-		checkRun := createCheckRun(pullRequest.PullRequest.Head.Sha)
+		checkRun := makeInProgressChecks(pullRequest.PullRequest.Head.Sha)
 		inProgressPayload, err := json.Marshal(checkRun)
 		if err != nil {
 			logError(err)
 		}
 		req, err := http.NewRequest(
 			"POST",
-			"https://api.github.com/repos/alirezatjk/trumpet_checks/check-runs",
+			"https://api.github.com/repos/alirezatjk/checks/check-runs",
 			bytes.NewBuffer(inProgressPayload))
 		if err != nil {
 			logError(err)
@@ -129,7 +129,7 @@ func createCheckRun(head string) CreateCheckRunPayload {
 			Title:   "First check title!",
 			Summary: "Damn, if this works it's awesome!",
 			Text:    "Blablablabla bla bla blabla bla blabla bla",
-			Annotations: Annotations{
+			Annotations: []Annotations{{
 				Path:            "/static/css/stylesheet.css",
 				StartLine:       2,
 				EndLine:         3,
@@ -139,12 +139,12 @@ func createCheckRun(head string) CreateCheckRunPayload {
 				Message:         "YO this is annotation",
 				Title:           "Well, this is title",
 				RawDetails:      "This is raw details",
-			},
-			Images: Images{
+			}},
+			Images: []Images{{
 				Alt:      "Image alt",
 				ImageURL: "https://dashboard.mielse.com/static/images/logo.png",
 				Caption:  "Caption lel lel",
-			},
+			}},
 		},
 		Actions: Actions{
 			Description: "Action description",
@@ -153,6 +153,22 @@ func createCheckRun(head string) CreateCheckRunPayload {
 		},
 	}
 	return checkRun
+}
+
+func makeInProgressChecks(head string) map[string]interface{} {
+	inProgressCheck := map[string]interface{}{
+		"name":        "mighty_readme",
+		"head_sha":    head,
+		"status":      "in_progress",
+		"external_id": "42",
+		"started_at":  time.Now().Format("2006-01-02T15:04:05Z07:00"),
+		"output": map[string]interface{}{
+			"title":   "Mighty Readme report",
+			"summary": "",
+			"text":    "",
+		},
+	}
+	return inProgressCheck
 }
 
 func logError(err error) {
