@@ -110,7 +110,6 @@ func sendCheckRunRequest(payload []byte, token string) []byte {
 	return body
 }
 
-//
 func createInProgressChecks(head string) []byte {
 	inProgressCheck := map[string]interface{}{
 		"name":        "Smoke Test",
