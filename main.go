@@ -80,14 +80,12 @@ func main() {
 }
 
 func webhookHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("hook secret:", hookSecret)
 	hook, _ := github.New(github.Options.Secret(hookSecret))
 	payload, err := hook.Parse(r, github.PullRequestEvent, github.PushEvent)
 	fatal(err)
 	switch payload.(type) {
 	case github.PullRequestPayload:
 		pullRequest := payload.(github.PullRequestPayload)
-		//fmt.Printf("%+v", pullRequest)
 		token := createAuthenticationToken()
 		checkRun := createInProgressChecks(pullRequest.PullRequest.Head.Sha)
 		inProgressCheckRun := sendCheckRunRequest(checkRun, token)
@@ -149,7 +147,7 @@ func createInProgressChecks(head string) []byte {
 			},
 			{
 				"label":       "Don't kill Tabbat",
-				"description": "Don't kill Tabbat to kinda speed up process",
+				"description": "Don't kill Tabbat to slow down process",
 				"identifier":  "dont_kill_tabbat",
 			},
 		},
@@ -191,7 +189,6 @@ func authenticate(accessToken string) string {
 	defer resp.Body.Close()
 	err = json.Unmarshal(body, &token)
 	fatal(err)
-	println(body)
 	return token.Token
 }
 
