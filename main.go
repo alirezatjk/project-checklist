@@ -94,7 +94,6 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		token, err := accessToken.SignedString(privateKey())
 		authenticate(token)
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 		checkRun := makeInProgressChecks(pullRequest.PullRequest.Head.Sha)
 		inProgressPayload, err := json.Marshal(checkRun)
 		fatal(err)
@@ -189,12 +188,17 @@ func privateKey() *rsa.PrivateKey {
 	return signedSecret
 }
 
-func authenticate(token) string {
-	resp, err := http.Get("https://api.github.com/app")
+func authenticate(token string) string {
+	req, err := http.NewRequest("GET", "https://api.github.com/app", nil)
+	fatal(err)
+	req.Header.Set("Accept", "application/vnd.github.machine-man-preview+json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	fatal(err)
 	body, err := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	fatal(err)
 	println(body)
-	return body
+	return string(body)
 }
