@@ -83,100 +83,79 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("hook secret:", hookSecret)
 	hook, _ := github.New(github.Options.Secret(hookSecret))
 	payload, err := hook.Parse(r, github.PullRequestEvent, github.PushEvent)
-	if err != nil {
-		if err == github.ErrEventNotFound {
-			fmt.Println("Event Not Registered:", err)
-		}
-	}
+	fatal(err)
 	switch payload.(type) {
 	case github.PullRequestPayload:
 		pullRequest := payload.(github.PullRequestPayload)
 		//fmt.Printf("%+v", pullRequest)
-		accessToken := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.StandardClaims{
-			IssuedAt:  time.Now().Unix(),
-			ExpiresAt: time.Now().Add(tokenDurations).Unix(),
-			Issuer:    "17332",
-		})
-		token, err := accessToken.SignedString(privateKey())
-		checkRun := makeInProgressChecks(pullRequest.PullRequest.Head.Sha)
-		inProgressPayload, err := json.Marshal(checkRun)
-		fatal(err)
-		req, err := http.NewRequest(
-			"POST",
-			"https://api.github.com/repos/alirezatjk/checks/check-runs",
-			bytes.NewBuffer(inProgressPayload))
-		fatal(err)
-		req.Header.Set("Accept", "application/vnd.github.antiope-preview+json")
-		req.Header.Set("Authorization", fmt.Sprintf("token %s", authenticate(token)))
-		println(token)
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		fatal(err)
-		body, err := ioutil.ReadAll(resp.Body)
-		defer resp.Body.Close()
-		fatal(err)
-		fmt.Println("Response: ", string(body))
-	case github.PushPayload:
-		moo := ""
-		fmt.Printf("%+v", moo)
+		token := createAuthenticationToken()
+		checkRun := createInProgressChecks(pullRequest.PullRequest.Head.Sha)
+		inProgressCheckRun := sendCheckRunRequest(checkRun, token)
+		fmt.Println("Response: ", string(inProgressCheckRun))
 	}
 }
 
-//mooooooo
-func createCheckRun(head string) CreateCheckRunPayload {
-	checkRun := CreateCheckRunPayload{
-		Name:        "First check run test",
-		HeadSha:     head,
-		DetailsURL:  "",
-		ExternalID:  "12564",
-		Status:      "in_progress",
-		StartedAt:   time.Now().Format("2006-01-02T15:04:05Z07:00"),
-		CompletedAt: time.Now().Format("2006-01-02T15:04:05Z07:00"),
-		Conclusion:  "action_required",
-		Output: Output{
-			Title:   "First check title!",
-			Summary: "Damn, if this works it's awesome!",
-			Text:    "Blablablabla bla bla blabla bla blabla bla",
-			Annotations: []Annotations{{
-				Path:            "/static/css/stylesheet.css",
-				StartLine:       2,
-				EndLine:         3,
-				StartColumn:     2,
-				EndColumn:       3,
-				AnnotationLevel: "warning",
-				Message:         "YO this is annotation",
-				Title:           "Well, this is title",
-				RawDetails:      "This is raw details",
-			}},
-			Images: []Images{{
-				Alt:      "Image alt",
-				ImageURL: "https://dashboard.mielse.com/static/images/logo.png",
-				Caption:  "Caption lel lel",
-			}},
-		},
-		Actions: Actions{
-			Description: "Action description",
-			Identifier:  "Action Identifier",
-			Label:       "Action Label",
-		},
-	}
-	return checkRun
+func sendCheckRunRequest(payload []byte, token string) []byte {
+	req, err := http.NewRequest(
+		"POST",
+		"https://api.github.com/repos/alirezatjk/checks/check-runs",
+		bytes.NewBuffer(payload))
+	fatal(err)
+	req.Header.Set("Accept", "application/vnd.github.antiope-preview+json")
+	req.Header.Set("Authorization", fmt.Sprintf("token %s", authenticate(token)))
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	fatal(err)
+	body, err := ioutil.ReadAll(resp.Body)
+	fatal(err)
+	defer resp.Body.Close()
+	return body
 }
 
-func makeInProgressChecks(head string) map[string]interface{} {
+func createInProgressChecks(head string) []byte {
 	inProgressCheck := map[string]interface{}{
-		"name":        "mighty_readme",
+		"name":        "Smoke Test",
 		"head_sha":    head,
 		"status":      "in_progress",
-		"external_id": "42",
+		"external_id": "69698585",
 		"started_at":  time.Now().Format("2006-01-02T15:04:05Z07:00"),
-		"output": map[string]string{
-			"title":   "Mighty Readme report",
-			"summary": "",
-			"text":    "",
+		"output": map[string]interface{}{
+			"title":   "Testing Consciousness",
+			"summary": "I am becoming one with the code",
+			"text":    "All that we are, is the result of what we have thought. The mind is everything. What we think, we become",
+			"images": []map[string]string{{
+				"alt":       "Becoming one in a blue environment yo",
+				"image_url": "http://fertilitymatters.ca/wp-content/uploads/2018/01/Zen.jpg",
+				"caption":   "Becoming one in a blue environment",
+			},
+				{
+					"alt":       "Becoming one in a yellowish environment yo",
+					"image_url": "https://img.purch.com/h/1400/aHR0cDovL3d3dy5saXZlc2NpZW5jZS5jb20vaW1hZ2VzL2kvMDAwLzAwMi81MDUvb3JpZ2luYWwvMDgwOTAyLXplbi1tZWRpdGF0aW9uLTAyLmpwZw==",
+					"caption":   "Becoming one in a yellowish environment",
+				},
+				{
+					"alt":       "Becoming one in a blue environment again yo",
+					"image_url": "https://mylifemystuff.files.wordpress.com/2012/04/zen.jpg",
+					"caption":   "Becoming one in a blue environment again",
+				},
+			},
+		},
+		"actions": []map[string]string{
+			{
+				"label":       "Kill Tabbat",
+				"description": "Kill Tabbat to speed up process",
+				"identifier":  "kill_tabbat",
+			},
+			{
+				"label":       "Don't kill Tabbat",
+				"description": "Don't kill Tabbat to kinda speed up process",
+				"identifier":  "dont_kill_tabbat",
+			},
 		},
 	}
-	return inProgressCheck
+	payload, err := json.Marshal(inProgressCheck)
+	fatal(err)
+	return payload
 }
 
 func fatal(err error) {
@@ -213,4 +192,15 @@ func authenticate(accessToken string) string {
 	fatal(err)
 	println(body)
 	return token.Token
+}
+
+func createAuthenticationToken() string {
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.StandardClaims{
+		IssuedAt:  time.Now().Unix(),
+		ExpiresAt: time.Now().Add(tokenDurations).Unix(),
+		Issuer:    "17332",
+	})
+	token, err := accessToken.SignedString(privateKey())
+	fatal(err)
+	return token
 }
