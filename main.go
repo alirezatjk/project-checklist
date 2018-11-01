@@ -61,7 +61,7 @@ type Annotations struct {
 
 const (
 	path           = "/hooks"
-	tokenDurations = 60 * 5
+	tokenDurations = 60
 )
 
 var (
@@ -117,7 +117,7 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//mooooooooooooooooooooo
+//moooooooooooooooooooooo
 func createCheckRun(head string) CreateCheckRunPayload {
 	checkRun := CreateCheckRunPayload{
 		Name:        "First check run test",
@@ -189,7 +189,10 @@ func privateKey() *rsa.PrivateKey {
 }
 
 func authenticate(token string) string {
-	req, err := http.NewRequest("GET", "https://api.github.com/app", nil)
+	req, err := http.NewRequest(
+		"POST",
+		"https://api.github.com/app/installations/:installation_id/access_tokens",
+		nil)
 	fatal(err)
 	req.Header.Set("Accept", "application/vnd.github.machine-man-preview+json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
