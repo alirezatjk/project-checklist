@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"gopkg.in/go-playground/webhooks.v5/github"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -57,7 +60,8 @@ type Annotations struct {
 }
 
 const (
-	path = "/hooks"
+	path           = "/hooks"
+	tokenDurations = 60
 )
 
 var (
@@ -83,30 +87,29 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 	case github.PullRequestPayload:
 		pullRequest := payload.(github.PullRequestPayload)
 		//fmt.Printf("%+v", pullRequest)
+		accessToken := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.StandardClaims{
+			IssuedAt:  time.Now().Unix(),
+			ExpiresAt: time.Now().Add(tokenDurations).Unix(),
+			Issuer:    "17332",
+		})
+		token, err := accessToken.SignedString(privateKey())
 		checkRun := makeInProgressChecks(pullRequest.PullRequest.Head.Sha)
 		inProgressPayload, err := json.Marshal(checkRun)
-		if err != nil {
-			logError(err)
-		}
+		fatal(err)
 		req, err := http.NewRequest(
 			"POST",
 			"https://api.github.com/repos/alirezatjk/checks/check-runs",
 			bytes.NewBuffer(inProgressPayload))
-		if err != nil {
-			logError(err)
-		}
+		fatal(err)
 		req.Header.Set("Accept", "application/vnd.github.antiope-preview+json")
+		req.Header.Set("Authentication", fmt.Sprintf("bearer %s", token))
 
 		client := &http.Client{}
 		resp, err := client.Do(req)
-		if err != nil {
-			logError(err)
-		}
+		fatal(err)
 		body, err := ioutil.ReadAll(resp.Body)
 		defer resp.Body.Close()
-		if err != nil {
-			logError(err)
-		}
+		fatal(err)
 		fmt.Println("Response: ", string(body))
 	case github.PushPayload:
 		moo := ""
@@ -162,7 +165,7 @@ func makeInProgressChecks(head string) map[string]interface{} {
 		"status":      "in_progress",
 		"external_id": "42",
 		"started_at":  time.Now().Format("2006-01-02T15:04:05Z07:00"),
-		"output": map[string]interface{}{
+		"output": map[string]string{
 			"title":   "Mighty Readme report",
 			"summary": "",
 			"text":    "",
@@ -171,6 +174,16 @@ func makeInProgressChecks(head string) map[string]interface{} {
 	return inProgressCheck
 }
 
-func logError(err error) {
-	fmt.Printf("Error: %s", err)
+func fatal(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func privateKey() *rsa.PrivateKey {
+	secret, err := ioutil.ReadFile("./secret.pem")
+	fatal(err)
+	signedSecret, err := jwt.ParseRSAPrivateKeyFromPEM(secret)
+	fatal(err)
+	return signedSecret
 }
