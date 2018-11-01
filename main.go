@@ -117,7 +117,7 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//moooooooooooooooooo
+//mooooooooooooooooooooo
 func createCheckRun(head string) CreateCheckRunPayload {
 	checkRun := CreateCheckRunPayload{
 		Name:        "First check run test",
