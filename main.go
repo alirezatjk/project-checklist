@@ -98,7 +98,6 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 			Issuer:    "17332",
 		})
 		token, err := accessToken.SignedString(privateKey())
-		authenticate(token)
 		checkRun := makeInProgressChecks(pullRequest.PullRequest.Head.Sha)
 		inProgressPayload, err := json.Marshal(checkRun)
 		fatal(err)
@@ -108,6 +107,7 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 			bytes.NewBuffer(inProgressPayload))
 		fatal(err)
 		req.Header.Set("Accept", "application/vnd.github.antiope-preview+json")
+		req.Header.Set("Authorization", fmt.Sprintf("token %s", authenticate(token)))
 		println(token)
 		client := &http.Client{}
 		resp, err := client.Do(req)
@@ -193,7 +193,7 @@ func privateKey() *rsa.PrivateKey {
 	return signedSecret
 }
 
-func authenticate(token string) string {
+func authenticate(accessToken string) string {
 	req, err := http.NewRequest(
 		"POST",
 		"https://api.github.com/app/installations/427948/access_tokens",
@@ -201,14 +201,16 @@ func authenticate(token string) string {
 	)
 	fatal(err)
 	req.Header.Set("Accept", "application/vnd.github.machine-man-preview+json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	fatal(err)
-	body := GithubToken{}
-	json.NewDecoder(resp.Body).Decode(&body)
+	var token GithubToken
+	body, err := ioutil.ReadAll(resp.Body)
 	fatal(err)
 	defer resp.Body.Close()
+	err = json.Unmarshal(body, &token)
+	fatal(err)
 	println(body)
-	return string(body.Token)
+	return token.Token
 }
