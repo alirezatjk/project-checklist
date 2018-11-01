@@ -102,8 +102,8 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 			bytes.NewBuffer(inProgressPayload))
 		fatal(err)
 		req.Header.Set("Accept", "application/vnd.github.antiope-preview+json")
-		req.Header.Set("Authentication", fmt.Sprintf("bearer %s", token))
-		println(req)
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+		println(req.Header.Get())
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		fatal(err)
