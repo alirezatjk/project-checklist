@@ -14,6 +14,11 @@ import (
 	"time"
 )
 
+type GithubToken struct {
+	Token     string `json:"token"`
+	ExpiresAt string `json:"expires_at"`
+}
+
 type CreateCheckRunPayload struct {
 	Name        string  `json:"name"`
 	HeadSha     string  `json:"head_sha"`
@@ -191,17 +196,19 @@ func privateKey() *rsa.PrivateKey {
 func authenticate(token string) string {
 	req, err := http.NewRequest(
 		"POST",
-		"https://api.github.com/app/installations/:installation_id/access_tokens",
-		nil)
+		"https://api.github.com/app/installations/427948/access_tokens",
+		nil,
+	)
 	fatal(err)
 	req.Header.Set("Accept", "application/vnd.github.machine-man-preview+json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	fatal(err)
-	body, err := ioutil.ReadAll(resp.Body)
-	defer resp.Body.Close()
+	body := GithubToken{}
+	json.NewDecoder(resp.Body).Decode(&body)
 	fatal(err)
+	defer resp.Body.Close()
 	println(body)
-	return string(body)
+	return string(body.Token)
 }
