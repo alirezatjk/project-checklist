@@ -117,7 +117,7 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//moooooooooooooooooooo
+//moooooooooooooo
 func createCheckRun(head string) CreateCheckRunPayload {
 	checkRun := CreateCheckRunPayload{
 		Name:        "First check run test",
@@ -181,7 +181,7 @@ func fatal(err error) {
 }
 
 func privateKey() *rsa.PrivateKey {
-	secret, err := ioutil.ReadFile("./secret.pem")
+	secret, err := ioutil.ReadFile("secret.pem")
 	fatal(err)
 	signedSecret, err := jwt.ParseRSAPrivateKeyFromPEM(secret)
 	fatal(err)
