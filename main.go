@@ -61,7 +61,7 @@ type Annotations struct {
 
 const (
 	path           = "/hooks"
-	tokenDurations = 60
+	tokenDurations = 60 * 5
 )
 
 var (
@@ -93,6 +93,8 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 			Issuer:    "17332",
 		})
 		token, err := accessToken.SignedString(privateKey())
+		authenticate(token)
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 		checkRun := makeInProgressChecks(pullRequest.PullRequest.Head.Sha)
 		inProgressPayload, err := json.Marshal(checkRun)
 		fatal(err)
@@ -102,7 +104,6 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 			bytes.NewBuffer(inProgressPayload))
 		fatal(err)
 		req.Header.Set("Accept", "application/vnd.github.antiope-preview+json")
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 		println(token)
 		client := &http.Client{}
 		resp, err := client.Do(req)
@@ -186,4 +187,14 @@ func privateKey() *rsa.PrivateKey {
 	signedSecret, err := jwt.ParseRSAPrivateKeyFromPEM(secret)
 	fatal(err)
 	return signedSecret
+}
+
+func authenticate(token) string {
+	resp, err := http.Get("https://api.github.com/app")
+	fatal(err)
+	body, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	fatal(err)
+	println(body)
+	return body
 }
