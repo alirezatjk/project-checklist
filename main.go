@@ -18,7 +18,6 @@ type GithubToken struct {
 	ExpiresAt string `json:"expires_at"`
 }
 
-//
 type CheckRunStatusPayload struct {
 	Name        string    `json:"name"`
 	HeadSha     string    `json:"head_sha"`
@@ -95,7 +94,11 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		inProgressCheckRun := sendCheckRunRequest(checkRun, token)
 		fmt.Println("Response: ", string(inProgressCheckRun))
+	case github.Event:
+
 	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("200, Everything's cool!"))
 }
 
 func sendCheckRunRequest(payload []byte, token string) []byte {
