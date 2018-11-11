@@ -8,7 +8,6 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"gopkg.in/go-playground/webhooks.v5/github"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -19,17 +18,17 @@ type GithubToken struct {
 	ExpiresAt string `json:"expires_at"`
 }
 
-type CreateCheckRunPayload struct {
-	Name        string  `json:"name"`
-	HeadSha     string  `json:"head_sha"`
-	DetailsURL  string  `json:"details_url"`
-	ExternalID  string  `json:"external_id"`
-	Status      string  `json:"status"`
-	StartedAt   string  `json:"started_at"`
-	Conclusion  string  `json:"conclusion"`
-	CompletedAt string  `json:"completed_at"`
-	Output      Output  `json:"output"`
-	Actions     Actions `json:"actions"`
+type CheckRunStatusPayload struct {
+	Name        string    `json:"name"`
+	HeadSha     string    `json:"head_sha"`
+	DetailsURL  string    `json:"details_url"`
+	ExternalID  string    `json:"external_id,omitempty"`
+	Status      string    `json:"status"`
+	StartedAt   string    `json:"started_at"`
+	Conclusion  string    `json:"conclusion,omitempty"`
+	CompletedAt string    `json:"completed_at,omitempty"`
+	Output      Output    `json:"output"`
+	Actions     []Actions `json:"actions,omitempty"`
 }
 
 type Actions struct {
@@ -41,9 +40,9 @@ type Actions struct {
 type Output struct {
 	Title       string        `json:"title"`
 	Summary     string        `json:"summary"`
-	Text        string        `json:"text"`
-	Annotations []Annotations `json:"annotations"`
-	Images      []Images      `json:"images"`
+	Text        string        `json:"text,omitempty"`
+	Annotations []Annotations `json:"annotations,omitempty"`
+	Images      []Images      `json:"images,omitempty"`
 }
 
 type Images struct {
@@ -82,12 +81,17 @@ func main() {
 func webhookHandler(w http.ResponseWriter, r *http.Request) {
 	hook, _ := github.New(github.Options.Secret(hookSecret))
 	payload, err := hook.Parse(r, github.PullRequestEvent, github.PushEvent)
-	fatal(err)
+	if err != nil {
+		fmt.Println(err)
+	}
 	switch payload.(type) {
 	case github.PullRequestPayload:
 		pullRequest := payload.(github.PullRequestPayload)
 		token := createAuthenticationToken()
-		checkRun := createInProgressChecks(pullRequest.PullRequest.Head.Sha)
+		checkRun, err := createInProgressChecks(pullRequest.PullRequest.Head.Sha)
+		if err != nil {
+			fmt.Println(err)
+		}
 		inProgressCheckRun := sendCheckRunRequest(checkRun, token)
 		fmt.Println("Response: ", string(inProgressCheckRun))
 	}
@@ -98,76 +102,83 @@ func sendCheckRunRequest(payload []byte, token string) []byte {
 		"POST",
 		"https://api.github.com/repos/alirezatjk/checks/check-runs",
 		bytes.NewBuffer(payload))
-	fatal(err)
+	if err != nil {
+		fmt.Println(err)
+	}
 	req.Header.Set("Accept", "application/vnd.github.antiope-preview+json")
 	req.Header.Set("Authorization", fmt.Sprintf("token %s", authenticate(token)))
 	client := &http.Client{}
 	resp, err := client.Do(req)
-	fatal(err)
+	if err != nil {
+		fmt.Println(err)
+	}
 	body, err := ioutil.ReadAll(resp.Body)
-	fatal(err)
+	if err != nil {
+		fmt.Println(err)
+	}
 	defer resp.Body.Close()
 	return body
 }
 
-func createInProgressChecks(head string) []byte {
-	inProgressCheck := map[string]interface{}{
-		"name":        "Smoke Test",
-		"head_sha":    head,
-		"status":      "in_progress",
-		"external_id": "69698585",
-		"started_at":  time.Now().Format("2006-01-02T15:04:05Z07:00"),
-		"output": map[string]interface{}{
-			"title":   "Testing Consciousness",
-			"summary": "I am becoming one with the code",
-			"text":    "All that we are, is the result of what we have thought. The mind is everything. What we think, we become",
-			"images": []map[string]string{{
-				"alt":       "Becoming one in a blue environment yo",
-				"image_url": "http://fertilitymatters.ca/wp-content/uploads/2018/01/Zen.jpg",
-				"caption":   "Becoming one in a blue environment",
-			},
-				{
-					"alt":       "Becoming one in a yellowish environment yo",
-					"image_url": "https://img.purch.com/h/1400/aHR0cDovL3d3dy5saXZlc2NpZW5jZS5jb20vaW1hZ2VzL2kvMDAwLzAwMi81MDUvb3JpZ2luYWwvMDgwOTAyLXplbi1tZWRpdGF0aW9uLTAyLmpwZw==",
-					"caption":   "Becoming one in a yellowish environment",
-				},
-				{
-					"alt":       "Becoming one in a blue environment again yo",
-					"image_url": "https://mylifemystuff.files.wordpress.com/2012/04/zen.jpg",
-					"caption":   "Becoming one in a blue environment again",
-				},
-			},
+func createInProgressChecks(head string) ([]byte, error) {
+	images := []Images{
+		{
+			Alt:      "Becoming one in a blue environment yo",
+			ImageURL: "http://fertilitymatters.ca/wp-content/uploads/2018/01/Zen.jpg",
+			Caption:  "Becoming one in a blue environment",
 		},
-		"actions": []map[string]string{
-			{
-				"label":       "Kill Tabbat",
-				"description": "Kill Tabbat to speed up process",
-				"identifier":  "kill_tabbat",
-			},
-			{
-				"label":       "Don't kill Tabbat",
-				"description": "Don't kill Tabbat to slow down process",
-				"identifier":  "dont_kill_tabbat",
-			},
+		{
+			Alt:      "Becoming one in a yellowish environment yo",
+			ImageURL: "https://img.purch.com/h/1400/aHR0cDovL3d3dy5saXZlc2NpZW5jZS5jb20vaW1hZ2VzL2kvMDAwLzAwMi81MDUvb3JpZ2luYWwvMDgwOTAyLXplbi1tZWRpdGF0aW9uLTAyLmpwZw==",
+			Caption:  "Becoming one in a yellowish environment",
+		},
+		{
+			Alt:      "Becoming one in a blue environment again yo",
+			ImageURL: "https://mylifemystuff.files.wordpress.com/2012/04/zen.jpg",
+			Caption:  "Becoming one in a blue environment again",
 		},
 	}
-	payload, err := json.Marshal(inProgressCheck)
-	fatal(err)
-	return payload
-}
-
-func fatal(err error) {
-	if err != nil {
-		log.Fatal(err)
+	actions := []Actions{
+		{
+			Label:       "Kill Tabbat",
+			Description: "Kill Tabbat to speed up process",
+			Identifier:  "kill_tabbat",
+		},
+		{
+			Label:       "Don't kill Tabbat",
+			Description: "Don't kill Tabbat to slow down process",
+			Identifier:  "dont_kill_tabbat",
+		},
 	}
+	output := Output{
+		Title:   "Testing Consciousness",
+		Summary: "I am becoming one with the code",
+		Text:    "All that we are, is the result of what we have thought. The mind is everything. What we think, we become.",
+		Images:  images,
+	}
+	inProgressCheck := CheckRunStatusPayload{
+		Name:       "Smoke Test",
+		HeadSha:    head,
+		Status:     "in_progress",
+		ExternalID: "69696969",
+		StartedAt:  time.Now().Format("2006-01-02T15:04:05Z07:00"),
+		Output:     output,
+		Actions:    actions,
+	}
+
+	return json.Marshal(inProgressCheck)
 }
 
-func privateKey() *rsa.PrivateKey {
+func getSignedSecret() (*rsa.PrivateKey, error) {
 	secret, err := ioutil.ReadFile("secret.pem")
-	fatal(err)
+	if err != nil {
+		return nil, err
+	}
 	signedSecret, err := jwt.ParseRSAPrivateKeyFromPEM(secret)
-	fatal(err)
-	return signedSecret
+	if err != nil {
+		return nil, err
+	}
+	return signedSecret, nil
 }
 
 func authenticate(accessToken string) string {
@@ -176,18 +187,26 @@ func authenticate(accessToken string) string {
 		"https://api.github.com/app/installations/427948/access_tokens",
 		nil,
 	)
-	fatal(err)
+	if err != nil {
+		fmt.Println(err)
+	}
 	req.Header.Set("Accept", "application/vnd.github.machine-man-preview+json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 	client := &http.Client{}
 	resp, err := client.Do(req)
-	fatal(err)
+	if err != nil {
+		fmt.Println(err)
+	}
 	var token GithubToken
 	body, err := ioutil.ReadAll(resp.Body)
-	fatal(err)
+	if err != nil {
+		fmt.Println(err)
+	}
 	defer resp.Body.Close()
 	err = json.Unmarshal(body, &token)
-	fatal(err)
+	if err != nil {
+		fmt.Println(err)
+	}
 	return token.Token
 }
 
@@ -197,7 +216,13 @@ func createAuthenticationToken() string {
 		ExpiresAt: time.Now().Add(tokenDurations).Unix(),
 		Issuer:    "17332",
 	})
-	token, err := accessToken.SignedString(privateKey())
-	fatal(err)
+	privateKey, err := getSignedSecret()
+	if err != nil {
+		panic(fmt.Sprintf("Cannot get signed secret: %s", err))
+	}
+	token, err := accessToken.SignedString(privateKey)
+	if err != nil {
+		panic(fmt.Sprintf("Cannot create authentication token: %s", err))
+	}
 	return token
 }
