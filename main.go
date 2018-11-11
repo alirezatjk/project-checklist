@@ -18,6 +18,7 @@ type GithubToken struct {
 	ExpiresAt string `json:"expires_at"`
 }
 
+//
 type CheckRunStatusPayload struct {
 	Name        string    `json:"name"`
 	HeadSha     string    `json:"head_sha"`
