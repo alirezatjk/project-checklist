@@ -78,6 +78,7 @@ func main() {
 	http.ListenAndServe(":4444", nil)
 }
 
+//
 func webhookHandler(w http.ResponseWriter, r *http.Request) {
 	hook, _ := github.New(github.Options.Secret(hookSecret))
 	payload, err := hook.Parse(r, github.PullRequestEvent, github.PushEvent)
